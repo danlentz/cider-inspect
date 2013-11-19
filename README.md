@@ -12,7 +12,7 @@ is called cider-inspect.
 NOTE: We are working to package the front end for distribution over
 ELPA; the clojure dependency is available on Clojars today.
 
-- Add [nrepl-inspect "0.4.0"] to profile or project :dependencies
+- Add [nrepl-inspect "0.4.1"] to profile or project :dependencies
 - Add inspector.middleware/wrap-inspect to your :repl-options -> :nrepl-middleware
 - Copy cider-inspect.el to your emacs loader path 
 - Add (require 'cider-inspect) to your init.el
@@ -21,7 +21,7 @@ Example ~/.lein/profiles.clj
 
 ```clj
 {:user {:plugins [[lein-ritz "0.7.0"]]
-        :dependencies [[nrepl-inspect "0.4.0"]
+        :dependencies [[nrepl-inspect "0.4.1"]
                        [ritz/ritz-nrepl-middleware "0.7.0"]]
         :repl-options {:nrepl-middleware
                        [inspector.middleware/wrap-inspect
