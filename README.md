@@ -1,24 +1,27 @@
-nrepl-inspect
+cider-inspect
 =============
 
-Successor to javert, provides nrepl middleware and nrepl.el plugin to
-do extensible slime-style object inspection.
+Successor to javert, provides nrepl middleware and Cider plugin to
+support extensible slime-style object inspection.  The clojar middleware
+support is still called nrepl-inspect whereas the Emacs-side extension
+is called cider-inspect.
 
 ## Installation
 
 
-NOTE: We are working to package this for distribution via Clojars and ELPA, bear with us
+NOTE: We are working to package the front end for distribution over
+ELPA; the clojure dependency is available on Clojars today.
 
-- Add [nrepl-inspect "0.3.0"] to profile or project :dependencies
+- Add [nrepl-inspect "0.4.0"] to profile or project :dependencies
 - Add inspector.middleware/wrap-inspect to your :repl-options -> :nrepl-middleware
-- Copy nrepl-inspect.el to your emacs loader path 
-- Add (require 'nrepl-inspect) to your init.el
+- Copy cider-inspect.el to your emacs loader path 
+- Add (require 'cider-inspect) to your init.el
 
 Example ~/.lein/profiles.clj
 
 ```clj
 {:user {:plugins [[lein-ritz "0.7.0"]]
-        :dependencies [[nrepl-inspect "0.3.0"]
+        :dependencies [[nrepl-inspect "0.4.0"]
                        [ritz/ritz-nrepl-middleware "0.7.0"]]
         :repl-options {:nrepl-middleware
                        [inspector.middleware/wrap-inspect
@@ -63,7 +66,7 @@ Type: class java.lang.Class
 
 You can extend the inspector.inspect/inspect generic function by type
 or using dispatch on the metadata value :inspector-tag.  See
-inspect.clj for examples.
+inspect.clj and ext/datomic.clj for examples.
 
 ## TODO
 

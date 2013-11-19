@@ -1,5 +1,5 @@
 (defproject nrepl-inspect "0.4.0"
-  :description "An Inspector or Cider and nREPL"
+  :description "An Inspector Cider and middleware for nREPL"
   :url "https://github.com/vitalreactor/cider-inspect"
   :license {:name "GPL v3"
             :author "Vital Reactor, LLC"
