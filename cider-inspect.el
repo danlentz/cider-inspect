@@ -1,12 +1,12 @@
-;;; nrepl.el --- Client for Clojure nREPL
+;;; cider-inspect.el --- Object inspector for Cider on Emacs
 
 ;; Copyright © 2013 Vital Reactor, LLC
-;;
+
 ;; Author: Ian Eslick <ian@vitalreactor.com>
-;; URL: http://www.github.com/vitalreactor/nrepl-inspect
-;; Version: 0.1.0
-;; Keywords: languages, clojure, nrepl
-;; Package-Requires: ((clojure-mode "2.0.0"))
+;; URL: http://www.github.com/vitalreactor/cider-inspect
+;; Version: 0.4.0
+;; Keywords: languages, clojure, cider, nrepl
+;; Package-Requires: ((clojure-mode "2.0.0") (cider "0.4.0"))
 
 ;; This program is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -24,18 +24,18 @@
 ;; This file is not part of GNU Emacs.
 
 (require 'cl)
-(require 'nrepl)
+(require 'cider)
 
 ;; ===================================
 ;; Inspector Key Map and Derived Mode
 ;; ===================================
 
-(defvar nrepl-inspector-mode-map
+(defvar cider-inspector-mode-map
   (let ((map (make-sparse-keymap)))
-	(define-key map [return] 'nrepl-inspector-operate-on-point)
-	(define-key map "\C-m"   'nrepl-inspector-operate-on-point)
-	(define-key map [mouse-1] 'nrepl-inspector-operate-on-click)
-	(define-key map "l" 'nrepl-inspector-pop)
+	(define-key map [return] 'cider-inspector-operate-on-point)
+	(define-key map "\C-m"   'cider-inspector-operate-on-point)
+	(define-key map [mouse-1] 'cider-inspector-operate-on-click)
+	(define-key map "l" 'cider-inspector-pop)
 ;;	(define-key map "n" 'nrepl-inspector-next)
 ;;	(define-key map " " 'nrepl-inspector-next)
 ;;  ("d" 'nrepl-inspector-describe)
@@ -43,23 +43,23 @@
 ;;  ("e" 'nrepl-inspector-eval)
 ;;  ("h" 'slime-inspector-history)
 ;;  ("v" 'slime-inspector-toggle-verbose)
-    (define-key map "g" 'nrepl-inspector-refresh)
-	(define-key map [tab] 'nrepl-inspector-next-inspectable-object)
-	(define-key map "\C-i" 'nrepl-inspector-next-inspectable-object)
+    (define-key map "g" 'cider-inspector-refresh)
+	(define-key map [tab] 'cider-inspector-next-inspectable-object)
+	(define-key map "\C-i" 'cider-inspector-next-inspectable-object)
 	(define-key map [(shift tab)] 
-	  'nrepl-inspector-previous-inspectable-object) ; Emacs translates S-TAB
-	(define-key map [backtab] 'nrepl-inspector-previous-inspectable-object) ; to BACKTAB on X.
+	  'cider-inspector-previous-inspectable-object) ; Emacs translates S-TAB
+	(define-key map [backtab] 'cider-inspector-previous-inspectable-object) ; to BACKTAB on X.
 ;;  ("." 'nrepl-inspector-show-source)
 ;;  (">" 'nrepl-inspector-fetch-all)
 	map))
 
-(set-keymap-parent nrepl-inspector-mode-map nrepl-popup-buffer-mode-map)
+(set-keymap-parent cider-inspector-mode-map cider-popup-buffer-mode-map)
 
-(define-minor-mode nrepl-inspector-buffer-mode
+(define-minor-mode cider-inspector-buffer-mode
   "nREPL Inspector Buffer Mode."
   nil
   (" nREPL Inspector")
-  nrepl-inspector-mode-map
+  cider-inspector-mode-map
   (set-syntax-table clojure-mode-syntax-table)
   (setq buffer-read-only t)
   (set (make-local-variable 'truncate-lines) t))
@@ -68,29 +68,29 @@
 ;; Top level
 ;;
 
-(defvar nrepl-minibuffer-map
+(defvar cider-minibuffer-map
   (let ((map (make-sparse-keymap)))
 	(set-keymap-parent map minibuffer-local-map)
 	(define-key map "\t" 'completion-at-point)
 	(define-key map "\M-\t" 'completion-at-point)
 	map))
 
-(defun nrepl-inspect (string)
+(defun cider-inspect (string)
   "Eval an expression and inspect the result"
   (interactive
    (list (read-from-minibuffer "Inspect value (evaluated): "
-							   (or (nrepl-sexp-at-point)
+							   (or (cider-sexp-at-point)
 								   (save-excursion
 									 (unless (equal (string (char-before)) " ")
 									   (backward-char)
-									   (nrepl-sexp-at-point))))
-							   nrepl-minibuffer-map
+									   (cider-sexp-at-point))))
+							   cider-minibuffer-map
 							   nil '())))
-  (nrepl-inspect-sym string nrepl-buffer-ns))
+  (cider-inspect-sym string (cider-current-ns)))
 
-(defun nrepl-inspect-debug (output)
-  (with-current-buffer (get-buffer-create "nrepl-inspect-debug")
-	(nrepl-inspector-buffer-mode 1)
+(defun cider-inspect-debug (output)
+  (with-current-buffer (get-buffer-create "cider-inspect-debug")
+	(cider-inspector-buffer-mode 1)
     (if (= (point) (point-max))
         (insert output))
     (save-excursion
@@ -99,44 +99,44 @@
 
 
 ;; Operations
-(defun nrepl-render-response (buffer)
+(defun cider-render-response (buffer)
   (nrepl-make-response-handler
    buffer
    (lambda (buffer str)
-	 (nrepl-irender buffer str))
+	 (cider-irender buffer str))
    '()
    (lambda (buffer str)
-	 (nrepl-emit-into-popup-buffer buffer "Oops"))
+	 (cider-emit-into-popup-buffer buffer "Oops"))
    '()))
 
-(defun nrepl-inspect-sym (sym ns)
-  (let ((buffer (nrepl-popup-buffer "*nREPL inspect*" t)))
+(defun cider-inspect-sym (sym ns)
+  (let ((buffer (cider-popup-buffer "*cider inspect*" t)))
 	(nrepl-send-request (list "op" "inspect-start" "sym" sym "ns" ns)
-						(nrepl-render-response buffer))))
+						(cider-render-response buffer))))
 
-(defun nrepl-inspector-pop ()
+(defun cider-inspector-pop ()
   (interactive)
-  (let ((buffer (nrepl-popup-buffer "*nREPL inspect*" t)))
+  (let ((buffer (cider-popup-buffer "*cider inspect*" t)))
 	(nrepl-send-request (list "op" "inspect-pop")
-						(nrepl-render-response buffer))))
+						(cider-render-response buffer))))
 
-(defun nrepl-inspector-push (idx)
-  (let ((buffer (nrepl-popup-buffer "*nREPL inspect*" t)))
+(defun cider-inspector-push (idx)
+  (let ((buffer (cider-popup-buffer "*cider inspect*" t)))
 	(nrepl-send-request (list "op" "inspect-push" "idx" (number-to-string idx))
-						(nrepl-render-response buffer))))
+						(cider-render-response buffer))))
 
-(defun nrepl-inspector-refresh ()
+(defun cider-inspector-refresh ()
   (interactive)
-  (let ((buffer (nrepl-popup-buffer "*nREPL inspect*" t)))
+  (let ((buffer (cider-popup-buffer "*cider inspect*" t)))
 	(nrepl-send-request (list "op" "inspect-refresh")
-						(nrepl-render-response buffer))))
+						(cider-render-response buffer))))
 
-(defun nrepl-test ()
-  (nrepl-inspect-sym "testing" "inspector.javert"))
+(defun cider-test ()
+  (cider-inspect-sym "testing" "inspector.javert"))
 
 
 ;; Utilities
-(defmacro nrepl-propertize-region (props &rest body)
+(defmacro cider-propertize-region (props &rest body)
   "Execute BODY and add PROPS to all the text it inserts.
 More precisely, PROPS are added to the region between the point's
 positions before and after executing BODY."
@@ -147,42 +147,42 @@ positions before and after executing BODY."
 
 
 ;; Render Inspector from Structured Values
-(defun nrepl-irender (buffer str)
+(defun cider-irender (buffer str)
   (with-current-buffer buffer
-    (nrepl-inspector-buffer-mode 1)
+    (cider-inspector-buffer-mode 1)
 	(let ((inhibit-read-only t))
 	  (condition-case nil
-		  (nrepl-irender* (car (read-from-string str)))
+		  (cider-irender* (car (read-from-string str)))
 		(error (newline) (insert "Inspector error for: " str))))
 	(goto-char (point-min))))
 
-(defun nrepl-irender* (elements)
-  (setq nrepl-irender-temp elements)
+(defun cider-irender* (elements)
+  (setq cider-irender-temp elements)
   (dolist (el elements)
-	(nrepl-irender-el* el)))
+	(cider-irender-el* el)))
 
-(defun nrepl-irender-el* (el)
+(defun cider-irender-el* (el)
   (cond ((symbolp el) (insert (symbol-name el)))
 		((stringp el) (insert el))
 		((and (consp el) (eq (car el) :newline))
 		 (newline))
 		((and (consp el) (eq (car el) :value))
-		 (nrepl-irender-value (cadr el) (caddr el)))
+		 (cider-irender-value (cadr el) (caddr el)))
 		(t (message "Unrecognized inspector object: " el))))
 
-(defun nrepl-irender-value (value idx)
-  (nrepl-propertize-region
-	  (list 'nrepl-value-idx idx
+(defun cider-irender-value (value idx)
+  (cider-propertize-region
+	  (list 'cider-value-idx idx
 			'mouse-face 'highlight
 			'face 'font-lock-keyword-face)
-	(nrepl-irender-el* value)))
+	(cider-irender-el* value)))
 
 
 ;; ===================================================
 ;; Inspector Navigation (lifted from SLIME inspector)
 ;; ===================================================
 
-(defun nrepl-find-inspectable-object (direction limit)
+(defun cider-find-inspectable-object (direction limit)
   "Find the next/previous inspectable object.
 DIRECTION can be either 'next or 'prev.  
 LIMIT is the maximum or minimum position in the current buffer.
@@ -195,12 +195,12 @@ otherwise LIMIT and NIL is returned."
                   (prev 'previous-single-property-change))))
     (let ((prop nil) (curpos (point)))
       (while (and (not prop) (not (= curpos limit)))
-        (let ((newpos (funcall finder curpos 'nrepl-value-idx nil limit)))
-          (setq prop (get-text-property newpos 'nrepl-value-idx))
+        (let ((newpos (funcall finder curpos 'cider-value-idx nil limit)))
+          (setq prop (get-text-property newpos 'cider-value-idx))
           (setq curpos newpos)))
       (list curpos (and prop t)))))
 
-(defun nrepl-inspector-next-inspectable-object (arg)
+(defun cider-inspector-next-inspectable-object (arg)
   "Move point to the next inspectable object.
 With optional ARG, move across that many objects.
 If ARG is negative, move backwards."
@@ -210,7 +210,7 @@ If ARG is negative, move backwards."
     ;; Forward.
     (while (> arg 0)
       (destructuring-bind (pos foundp)
-          (nrepl-find-inspectable-object 'next maxpos)
+          (cider-find-inspectable-object 'next maxpos)
         (if foundp
             (progn (goto-char pos) (setq arg (1- arg))
                    (setq previously-wrapped-p nil))
@@ -220,8 +220,8 @@ If ARG is negative, move backwards."
     ;; Backward.
     (while (< arg 0)
       (destructuring-bind (pos foundp)
-          (nrepl-find-inspectable-object 'prev minpos)
-        ;; NREPL-OPEN-INSPECTOR inserts the title of an inspector page
+          (cider-find-inspectable-object 'prev minpos)
+        ;; CIDER-OPEN-INSPECTOR inserts the title of an inspector page
         ;; as a presentation at the beginning of the buffer; skip
         ;; that.  (Notice how this problem can not arise in ``Forward.'')
         (if (and foundp (/= pos minpos))
@@ -231,16 +231,16 @@ If ARG is negative, move backwards."
                 (progn (goto-char maxpos) (setq previously-wrapped-p t))
                 (error "No inspectable objects")))))))
 
-(defun nrepl-inspector-previous-inspectable-object (arg)
+(defun cider-inspector-previous-inspectable-object (arg)
   "Move point to the previous inspectable object.
 With optional ARG, move across that many objects.
 If ARG is negative, move forwards."
   (interactive "p")
-  (nrepl-inspector-next-inspectable-object (- arg)))
+  (cider-inspector-next-inspectable-object (- arg)))
 
-(defun nrepl-inspector-property-at-point ()
-  (let* ((properties '(nrepl-value-idx nrepl-range-button
-									   nrepl-action-number))
+(defun cider-inspector-property-at-point ()
+  (let* ((properties '(cider-value-idx cider-range-button
+									   cider-action-number))
          (find-property
           (lambda (point)
             (loop for property in properties
@@ -250,7 +250,7 @@ If ARG is negative, move forwards."
       (or (funcall find-property (point))
           (funcall find-property (1- (point))))))
 
-(defun nrepl-inspector-operate-on-point ()
+(defun cider-inspector-operate-on-point ()
   "Invoke the command for the text at point.
 1. If point is on a value then recursivly call the inspector on
 that value.  
@@ -258,24 +258,26 @@ that value.
 3. If point is on a range-button fetch and insert the range."
   (interactive)
   (destructuring-bind (property value)
-	  (nrepl-inspector-property-at-point)
+	  (cider-inspector-property-at-point)
 	(case property
-	  (nrepl-value-idx
-	   (nrepl-inspector-push value))
+	  (cider-value-idx
+	   (cider-inspector-push value))
 	  ;; TODO: range and action handlers 
 	  (t (error "No object at point")))))
 
-(defun nrepl-inspector-operate-on-click (event)
+(defun cider-inspector-operate-on-click (event)
   "Move to events' position and operate the part."
   (interactive "@e")
   (let ((point (posn-point (event-end event))))
     (cond ((and point
-                (or (get-text-property point 'nrepl-value-idx)))
-;;                    (get-text-property point 'nrepl-range-button)
-;;                    (get-text-property point 'nrepl-action-number)))
+                (or (get-text-property point 'cider-value-idx)))
+;;                    (get-text-property point 'cider-range-button)
+;;                    (get-text-property point 'cider-action-number)))
            (goto-char point)
            (slime-inspector-operate-on-point))
           (t
            (error "No clickable part here")))))
 
-(provide 'nrepl-inspect)
+(provide 'cider-inspect)
+
+;;; cider-inspect.el ends here
